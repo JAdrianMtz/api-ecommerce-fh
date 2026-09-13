@@ -1,21 +1,23 @@
 using ApiEcommerce.Data;
+using ApiEcommerce.Repository;
+using ApiEcommerce.Repository.IRepository;
 using AutoMapper.Internal;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
+// Framework Services
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-// DB Config
+// Database
 builder.Services.AddDbContext<ApplicationDbContext>(options => 
     options.UseSqlServer("name=DefaultConnection")
 );
 
-// Automapper Config
+// External libraries
 builder.Services.AddAutoMapper(config =>
 {
     config.AddMaps(typeof(Program));
@@ -25,18 +27,36 @@ builder.Services.AddAutoMapper(config =>
     });
 });
 
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Version = "v1",
+        Title = "Api Ecommerce",
+        Description = "Web api para trabajar con el Ecommerce"
+    });
+});
+
+// Repositories
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// API Documentation
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
+// Security
 app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
+// Endpoints
 app.MapControllers();
 
 app.Run();
