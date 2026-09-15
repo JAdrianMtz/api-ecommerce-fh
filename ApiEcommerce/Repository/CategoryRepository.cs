@@ -13,6 +13,7 @@ namespace ApiEcommerce.Repository
         {
             _context = context;
         }
+
         public IEnumerable<Category> GetCategories()
         {
             return _context.Categories.OrderBy(c => c.Name).ToList();
