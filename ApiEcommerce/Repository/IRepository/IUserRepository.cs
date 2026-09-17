@@ -6,9 +6,9 @@ namespace ApiEcommerce.Repository.IRepository
     public interface IUserRepository
     {
         IEnumerable<User> GetUsers();
-        User? GetUser(int id);
+        User? GetUserById(int id);
         bool IsUniqueUser(string username);
-        bool Login(UserLoginDto userLoginDto);
+        User? Login(UserLoginDto userLoginDto);
         User Register(CreateUserDto createUserDto);
     }
 }
