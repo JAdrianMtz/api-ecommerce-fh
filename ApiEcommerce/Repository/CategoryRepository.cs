@@ -36,14 +36,14 @@ namespace ApiEcommerce.Repository
 
         public bool CreateCategory(Category category)
         {
-            category.CreatedAt = DateTime.Now;
+            category.CreatedAt = DateTime.UtcNow;
             _context.Categories.Add(category);
             return Save();
         }
 
         public bool UpdateCategory(Category category)
         {
-            category.CreatedAt = DateTime.Now;
+            category.CreatedAt = DateTime.UtcNow;
             _context.Categories.Update(category);
             return Save();
         }

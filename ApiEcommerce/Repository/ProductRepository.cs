@@ -69,7 +69,7 @@ namespace ApiEcommerce.Repository
 
         public bool UpdateProduct(Product product)
         {
-            product.UpdatedAt = DateTime.Now;
+            product.UpdatedAt = DateTime.UtcNow;
             _context.Products.Update(product);
             return Save();
         }
