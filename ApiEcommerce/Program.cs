@@ -1,3 +1,4 @@
+using ApiEcommerce.Configurations;
 using ApiEcommerce.Data;
 using ApiEcommerce.Repository;
 using ApiEcommerce.Repository.IRepository;
@@ -14,38 +15,64 @@ var builder = WebApplication.CreateBuilder(args);
 // Framework Services
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddAuthentication().AddJwtBearer(options =>
-{
-    options.MapInboundClaims = false;
-
-    options.TokenValidationParameters = new TokenValidationParameters
-    {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]!)),
-        ClockSkew = TimeSpan.Zero
-    };
-});
-
 builder.Services.AddAuthorization();
 
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()!;
+// Configuration
+builder.Services.AddOptions<JwtSettings>()
+    .BindConfiguration(JwtSettings.Seccion)
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+var jwtSettings = builder.Configuration
+    .GetSection(JwtSettings.Seccion)
+    .Get<JwtSettings>()!;
+
+// Authentication
+builder.Services.AddAuthentication()
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+
+            ValidIssuer = jwtSettings.Issuer,
+            ValidAudience = jwtSettings.Audience,
+
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(jwtSettings.SecretKey)
+            ),
+
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+// CORS
+var allowedOrigins = builder.Configuration
+    .GetSection("AllowedOrigins")
+    .Get<string[]>()!;
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader();
+        policy.WithOrigins(allowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader();
     });
 });
 
-builder.Services.AddOutputCache(options => 
+// Output Cache
+builder.Services.AddOutputCache(options =>
     options.DefaultExpirationTimeSpan = TimeSpan.FromSeconds(60)
 );
 
 // Database
-builder.Services.AddDbContext<ApplicationDbContext>(options => 
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer("name=DefaultConnection")
 );
 

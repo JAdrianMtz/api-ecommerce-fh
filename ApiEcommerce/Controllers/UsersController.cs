@@ -1,10 +1,12 @@
-﻿using ApiEcommerce.Models;
+﻿using ApiEcommerce.Configurations;
+using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,13 +20,13 @@ namespace ApiEcommerce.Controllers
     {
         private readonly IUserRepository _repository;
         private readonly IMapper _mapper;
-        private readonly IConfiguration _configuration;
+        private readonly JwtSettings _jwtSettings;
 
-        public UsersController(IUserRepository repository, IMapper mapper, IConfiguration configuration)
+        public UsersController(IUserRepository repository, IMapper mapper, IOptions<JwtSettings> jwtSettingsOptions)
         {
             _repository = repository;
             _mapper = mapper;
-            _configuration = configuration;
+            _jwtSettings = jwtSettingsOptions.Value;
         }
 
         [HttpGet(Name = "GetUsers")]
@@ -113,12 +115,12 @@ namespace ApiEcommerce.Controllers
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var expiration = DateTime.UtcNow.AddHours(1);
+            var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
 
-            var securityToken = new JwtSecurityToken(issuer: _configuration["JwtSettings:Issuer"]!, audience: _configuration["JwtSettings:Audience"]!,
+            var securityToken = new JwtSecurityToken(issuer: _jwtSettings.Issuer, audience: _jwtSettings.Audience,
                 claims: claims, expires: expiration, signingCredentials: credentials);
 
             var token = new JwtSecurityTokenHandler().WriteToken(securityToken);
