@@ -28,6 +28,15 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
     };
 });
 
+var originsAllowed = builder.Configuration.GetSection("OriginsAllowed").Get<string[]>()!;
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins(originsAllowed).AllowAnyMethod().AllowAnyHeader();
+    });
+});
+
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options => 
     options.UseSqlServer("name=DefaultConnection")
@@ -71,6 +80,7 @@ if (app.Environment.IsDevelopment())
 
 // Security
 app.UseHttpsRedirection();
+app.UseCors();
 
 app.UseAuthorization();
 
