@@ -2,6 +2,7 @@
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,7 @@ namespace ApiEcommerce.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CategoriesController : ControllerBase
     {
         private readonly ICategoryRepository repository;
@@ -22,6 +24,7 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet(Name = "GetCategories")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<CategoryDto>> GetCategories()
         {
@@ -31,10 +34,17 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet("{id:int}", Name = "GetCategoryById")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<CategoryDto> GetCategoryById(int id)
         {
+            if (id <= 0)
+            {
+                return BadRequest();
+            }
+
             var categoryExists = repository.CategoryExists(id);
             if (!categoryExists)
             {
@@ -49,6 +59,7 @@ namespace ApiEcommerce.Controllers
         [HttpPost(Name = "CreateCategory")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<CategoryDto> CreateCategory(CreateCategoryDto createCategoryDto)
         {
@@ -78,11 +89,13 @@ namespace ApiEcommerce.Controllers
 
         [HttpPut("{id:int}", Name = "UpdateCategory")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult UpdateCategory(int id, CreateCategoryDto updateCategoryDto)
         {
-            if (updateCategoryDto is null)
+            if (id <= 0 || updateCategoryDto is null)
             {
                 return BadRequest();
             }
@@ -107,10 +120,17 @@ namespace ApiEcommerce.Controllers
 
         [HttpDelete("{id:int}", Name = "DeleteCategory")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DeleteCategory(int id)
         {
+            if (id <= 0)
+            {
+                return BadRequest();
+            }
+
             var categoryExists = repository.CategoryExists(id);
             if (!categoryExists)
             {

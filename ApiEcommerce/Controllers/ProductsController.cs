@@ -2,6 +2,7 @@
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,6 +10,7 @@ namespace ApiEcommerce.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ProductsController : ControllerBase
     {
         private readonly IProductRepository repository;
@@ -23,6 +25,7 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet(Name = "GetProducts")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<ProductDto>> GetProducts()
         {
@@ -32,6 +35,7 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet("by-category", Name = "GetProductsForCategory")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<IEnumerable<ProductDto>> GetProductsForCategory([FromQuery] int categoryId) { 
@@ -46,6 +50,7 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet("search", Name = "SearchProducts")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<IEnumerable<ProductDto>> SearchProducts([FromQuery] string searchTerm) { 
@@ -60,6 +65,7 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet("{id:int}", Name = "GetProductById")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -84,6 +90,7 @@ namespace ApiEcommerce.Controllers
         [HttpPost("{productId:int}/buy", Name = "BuyProduct")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult BuyProduct(int productId, int quantity)
@@ -125,6 +132,7 @@ namespace ApiEcommerce.Controllers
         [HttpPost(Name = "CreateProduct")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public ActionResult<ProductDto> CreateProduct(CreateProductDto createProductDto)
         {
@@ -162,6 +170,7 @@ namespace ApiEcommerce.Controllers
         [HttpPut("{id:int}", Name = "UpdateProduct")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult UpdateProduct(int id, UpdateProductDto updateProductDto)
@@ -199,6 +208,7 @@ namespace ApiEcommerce.Controllers
         [HttpDelete("{id:int}", Name = "DeleteProduct")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DeleteProduct(int id)

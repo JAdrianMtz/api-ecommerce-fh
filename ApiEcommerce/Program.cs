@@ -1,6 +1,7 @@
 using ApiEcommerce.Data;
 using ApiEcommerce.Repository;
 using ApiEcommerce.Repository.IRepository;
+using ApiEcommerce.Swagger;
 using AutoMapper.Internal;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -28,12 +29,14 @@ builder.Services.AddAuthentication().AddJwtBearer(options =>
     };
 });
 
-var originsAllowed = builder.Configuration.GetSection("OriginsAllowed").Get<string[]>()!;
+builder.Services.AddAuthorization();
+
+var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()!;
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins(originsAllowed).AllowAnyMethod().AllowAnyHeader();
+        policy.WithOrigins(allowedOrigins).AllowAnyMethod().AllowAnyHeader();
     });
 });
 
@@ -60,6 +63,17 @@ builder.Services.AddSwaggerGen(options =>
         Title = "Api Ecommerce",
         Description = "Web api para trabajar con el Ecommerce"
     });
+
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header
+    });
+
+    options.OperationFilter<AuthorizationFilter>();
 });
 
 // Repositories
@@ -82,6 +96,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseCors();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Endpoints

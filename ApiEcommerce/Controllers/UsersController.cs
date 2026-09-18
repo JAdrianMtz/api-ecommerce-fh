@@ -2,6 +2,7 @@
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -27,7 +28,9 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet(Name = "GetUsers")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public ActionResult<IEnumerable<User>> GetUsers() {
             var users = _repository.GetUsers();
             var usersDto = _mapper.Map<UserDto>(users);
@@ -35,8 +38,10 @@ namespace ApiEcommerce.Controllers
         }
 
         [HttpGet("{id:int}", Name = "GetUserById")]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public ActionResult<User> GetUserById(int id) {
             if (id <= 0)
@@ -85,7 +90,7 @@ namespace ApiEcommerce.Controllers
             var isUniqueUser = _repository.IsUniqueUser(createUserDto.Username);
             if (!isUniqueUser)
             {
-                ModelState.AddModelError(string.Empty, "El usuario ya existe");
+                ModelState.AddModelError(nameof(createUserDto.Username), "El usuario ya existe");
                 return ValidationProblem();
             }
 
@@ -105,6 +110,7 @@ namespace ApiEcommerce.Controllers
             var claims = new List<Claim>
             {
                 new Claim("username", user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:SecretKey"]!));
