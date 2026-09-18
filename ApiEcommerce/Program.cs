@@ -40,6 +40,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.AddOutputCache(options => 
+    options.DefaultExpirationTimeSpan = TimeSpan.FromSeconds(60)
+);
+
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options => 
     options.UseSqlServer("name=DefaultConnection")
@@ -95,6 +99,8 @@ if (app.Environment.IsDevelopment())
 // Security
 app.UseHttpsRedirection();
 app.UseCors();
+
+app.UseOutputCache();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -5,6 +5,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 
 namespace ApiEcommerce.Controllers
 {
@@ -13,29 +14,34 @@ namespace ApiEcommerce.Controllers
     [Authorize]
     public class ProductsController : ControllerBase
     {
-        private readonly IProductRepository repository;
-        private readonly IMapper mapper;
-        private readonly ICategoryRepository categoryRepository;
+        private readonly IProductRepository _repository;
+        private readonly IMapper _mapper;
+        private readonly ICategoryRepository _categoryRepository;
+        private readonly IOutputCacheStore _outputCacheStore;
+        private const string cache = "products-tag";
 
-        public ProductsController(IProductRepository repository, ICategoryRepository categoryRepository, IMapper mapper)
+        public ProductsController(IProductRepository repository, ICategoryRepository categoryRepository, IMapper mapper, IOutputCacheStore outputCacheStore)
         {
-            this.repository = repository;
-            this.categoryRepository = categoryRepository;
-            this.mapper = mapper;
+            _repository = repository;
+            _categoryRepository = categoryRepository;
+            _mapper = mapper;
+            _outputCacheStore = outputCacheStore;
         }
 
         [HttpGet(Name = "GetProducts")]
         [AllowAnonymous]
+        [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<ProductDto>> GetProducts()
         {
-            var products = repository.GetProducts();
-            var productsDto = mapper.Map<IEnumerable<ProductDto>>(products);
+            var products = _repository.GetProducts();
+            var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
         }
 
         [HttpGet("by-category", Name = "GetProductsForCategory")]
         [AllowAnonymous]
+        [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public ActionResult<IEnumerable<ProductDto>> GetProductsForCategory([FromQuery] int categoryId) { 
@@ -44,8 +50,8 @@ namespace ApiEcommerce.Controllers
                 return BadRequest();
             }
 
-            var products = repository.GetProductsForCategory(categoryId);
-            var productsDto = mapper.Map<IEnumerable<ProductDto>>(products);
+            var products = _repository.GetProductsForCategory(categoryId);
+            var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
         }
 
@@ -59,13 +65,14 @@ namespace ApiEcommerce.Controllers
                 return BadRequest();
             }
 
-            var products = repository.SearchProducts(searchTerm);
-            var productsDto = mapper.Map<IEnumerable<ProductDto>>(products);
+            var products = _repository.SearchProducts(searchTerm);
+            var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
         }
 
         [HttpGet("{id:int}", Name = "GetProductById")]
         [AllowAnonymous]
+        [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -76,14 +83,14 @@ namespace ApiEcommerce.Controllers
                 return BadRequest();
             }
 
-            var productExists = repository.ProductExists(id);
+            var productExists = _repository.ProductExists(id);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var product = repository.GetProductById(id);
-            var productDto = mapper.Map<ProductDto>(product);
+            var product = _repository.GetProductById(id);
+            var productDto = _mapper.Map<ProductDto>(product);
             return Ok(productDto);
         }
 
@@ -93,7 +100,7 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult BuyProduct(int productId, int quantity)
+        public async Task<IActionResult> BuyProduct(int productId, int quantity)
         {
             if (productId <= 0)
             {
@@ -106,26 +113,27 @@ namespace ApiEcommerce.Controllers
                 return ValidationProblem();
             }
 
-            var productExists = repository.ProductExists(productId);
+            var productExists = _repository.ProductExists(productId);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var product = repository.GetProductById(productId)!;
+            var product = _repository.GetProductById(productId)!;
             if (quantity > product.Stock)
             {
                 ModelState.AddModelError(string.Empty, "No hay suficiente stock del producto");
                 return ValidationProblem();
             }
 
-            var success = repository.BuyProduct(productId, quantity);
+            var success = _repository.BuyProduct(productId, quantity);
             if (!success)
             {
                 ModelState.AddModelError(string.Empty, "Error al comprar el producto");
                 return StatusCode(500, ModelState);
             }
 
+            await _outputCacheStore.EvictByTagAsync(cache, default);
             return NoContent();
         }
 
@@ -134,36 +142,37 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<ProductDto> CreateProduct(CreateProductDto createProductDto)
+        public async Task<ActionResult<ProductDto>> CreateProduct(CreateProductDto createProductDto)
         {
             if (createProductDto is null)
             {
                 return BadRequest();
             }
 
-            var productExists = repository.ProductExists(createProductDto.Name);
+            var productExists = _repository.ProductExists(createProductDto.Name);
             if (productExists)
             {
                 ModelState.AddModelError(string.Empty, "El producto ya existe");
                 return ValidationProblem();
             }
 
-            var categoryExists = categoryRepository.CategoryExists(createProductDto.CategoryId);
+            var categoryExists = _categoryRepository.CategoryExists(createProductDto.CategoryId);
             if (!categoryExists)
             {
                 ModelState.AddModelError(nameof(createProductDto.CategoryId), "La categoría no existe");
                 return ValidationProblem();
             }
 
-            var product = mapper.Map<Product>(createProductDto);
-            var productCreated = repository.CreateProduct(product);
+            var product = _mapper.Map<Product>(createProductDto);
+            var productCreated = _repository.CreateProduct(product);
             if (!productCreated)
             {
                 ModelState.AddModelError(string.Empty, "Error al guardar el producto");
                 return StatusCode(500, ModelState);
             }
 
-            var productDto = mapper.Map<ProductDto>(product);
+            await _outputCacheStore.EvictByTagAsync(cache, default);
+            var productDto = _mapper.Map<ProductDto>(product);
             return CreatedAtRoute("GetProductById", new { id = productDto.Id }, productDto);
         }
 
@@ -173,35 +182,36 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateProduct(int id, UpdateProductDto updateProductDto)
+        public async Task<IActionResult> UpdateProduct(int id, UpdateProductDto updateProductDto)
         {
             if (id <= 0 || updateProductDto is null)
             {
                 return BadRequest();
             }
 
-            var productExists = repository.ProductExists(id);
+            var productExists = _repository.ProductExists(id);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var categoryExists = categoryRepository.CategoryExists(updateProductDto.CategoryId);
+            var categoryExists = _categoryRepository.CategoryExists(updateProductDto.CategoryId);
             if (!categoryExists)
             {
                 ModelState.AddModelError(nameof(updateProductDto.CategoryId), "La categoría no existe");
                 return ValidationProblem();
             }
 
-            var product = mapper.Map<Product>(updateProductDto);
+            var product = _mapper.Map<Product>(updateProductDto);
             product.Id = id;
-            var updatedProduct = repository.UpdateProduct(product);
+            var updatedProduct = _repository.UpdateProduct(product);
             if (!updatedProduct)
             {
                 ModelState.AddModelError(string.Empty, "Error al actualizar el producto");
                 return StatusCode(500, ModelState);
             }
 
+            await _outputCacheStore.EvictByTagAsync(cache, default);
             return NoContent();
         }
 
@@ -211,27 +221,28 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult DeleteProduct(int id)
+        public async Task<IActionResult> DeleteProduct(int id)
         {
             if (id <= 0)
             {
                 return BadRequest();
             }
 
-            var productExists = repository.ProductExists(id);
+            var productExists = _repository.ProductExists(id);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var product = repository.GetProductById(id)!;
-            var deletedProduct = repository.DeleteProduct(product);
+            var product = _repository.GetProductById(id)!;
+            var deletedProduct = _repository.DeleteProduct(product);
             if (!deletedProduct)
             {
                 ModelState.AddModelError(string.Empty, "Error al eliminar el producto");
                 return StatusCode(500, ModelState);
             }
 
+            await _outputCacheStore.EvictByTagAsync(cache, default);
             return NoContent();
         }
     }
