@@ -1,6 +1,7 @@
 ﻿using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
+using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -8,9 +9,10 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 
-namespace ApiEcommerce.Controllers
+namespace ApiEcommerce.Controllers.V2
 {
-    [Route("api/[controller]")]
+    [Route("api/v{version:apiVersion}/[controller]")]
+    [ApiVersion("2.0")]
     [ApiController]
     [Authorize]
     public class CategoriesController : ControllerBase
@@ -27,18 +29,18 @@ namespace ApiEcommerce.Controllers
             _outputCacheStore = outputCacheStore;
         }
 
-        [HttpGet(Name = "GetCategories")]
+        [HttpGet(Name = "GetCategoriesV2")]
         [AllowAnonymous]
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public ActionResult<IEnumerable<CategoryDto>> GetCategories()
         {
-            var categories = _repository.GetCategories();
+            var categories = _repository.GetCategories().OrderBy(c => c.Name);
             var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(categories);
             return Ok(categoriesDto);
         }
 
-        [HttpGet("{id:int}", Name = "GetCategoryById")]
+        [HttpGet("{id:int}", Name = "GetCategoryByIdV2")]
         [AllowAnonymous]
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -62,7 +64,7 @@ namespace ApiEcommerce.Controllers
             return Ok(categoryDto);
         }
 
-        [HttpPost(Name = "CreateCategory")]
+        [HttpPost(Name = "CreateCategoryV2")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -91,10 +93,10 @@ namespace ApiEcommerce.Controllers
 
             await _outputCacheStore.EvictByTagAsync(cache, default);
             var categoryCreatedDto = _mapper.Map<CategoryDto>(category);
-            return CreatedAtRoute("GetCategoryById", new { id = categoryCreatedDto.Id }, categoryCreatedDto);
+            return CreatedAtRoute("GetCategoryByIdV2", new { id = categoryCreatedDto.Id }, categoryCreatedDto);
         }
 
-        [HttpPut("{id:int}", Name = "UpdateCategory")]
+        [HttpPut("{id:int}", Name = "UpdateCategoryV2")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -126,7 +128,7 @@ namespace ApiEcommerce.Controllers
             return NoContent();
         }
 
-        [HttpDelete("{id:int}", Name = "DeleteCategory")]
+        [HttpDelete("{id:int}", Name = "DeleteCategoryV2")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
