@@ -6,6 +6,7 @@ using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -23,32 +24,34 @@ namespace ApiEcommerce.Controllers
         private readonly IUserRepository _repository;
         private readonly IMapper _mapper;
         private readonly JwtSettings _jwtSettings;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        public UsersController(IUserRepository repository, IMapper mapper, IOptions<JwtSettings> jwtSettingsOptions)
+        public UsersController(IUserRepository repository, IMapper mapper, IOptions<JwtSettings> jwtSettingsOptions, UserManager<ApplicationUser> userManager)
         {
             _repository = repository;
             _mapper = mapper;
             _jwtSettings = jwtSettingsOptions.Value;
+            _userManager = userManager;
         }
 
         [HttpGet(Name = "GetUsers")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public ActionResult<IEnumerable<User>> GetUsers() {
+        public ActionResult<IEnumerable<ApplicationUser>> GetUsers() {
             var users = _repository.GetUsers();
-            var usersDto = _mapper.Map<UserDto>(users);
+            var usersDto = _mapper.Map<ApplicationUserDto>(users);
             return Ok(usersDto);
         }
 
-        [HttpGet("{id:int}", Name = "GetUserById")]
+        [HttpGet("{id}", Name = "GetUserById")]
         [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<User> GetUserById(int id) {
-            if (id <= 0)
+        public ActionResult<User> GetUserById(string id) {
+            if (string.IsNullOrEmpty(id))
             {
                 return BadRequest();
             }
@@ -66,13 +69,13 @@ namespace ApiEcommerce.Controllers
         [HttpPost("login", Name = "Login")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<LoginResponseDto>> Login(UserLoginDto userLoginDto) {
+        public async Task<ActionResult<LoginResponseDto>> Login(ApplicationUserLoginDto userLoginDto) {
             if (userLoginDto is null)
             {
                 return BadRequest();
             }
 
-            var user = _repository.Login(userLoginDto);
+            var user = await _repository.Login(userLoginDto);
             if (user is null)
             {
                 return LoginFail();
@@ -85,20 +88,20 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<LoginResponseDto>> Register(CreateUserDto createUserDto) {
+        public async Task<ActionResult<LoginResponseDto>> Register(CreateApplicationUserDto createUserDto) {
             if (createUserDto is null)
             {
                 return BadRequest();
             }
 
-            var isUniqueUser = _repository.IsUniqueUser(createUserDto.Username);
+            var isUniqueUser = _repository.IsUniqueUser(createUserDto.UserName);
             if (!isUniqueUser)
             {
-                ModelState.AddModelError(nameof(createUserDto.Username), "El usuario ya existe");
+                ModelState.AddModelError(nameof(createUserDto.UserName), "El usuario ya existe");
                 return ValidationProblem();
             }
 
-            var user = _repository.Register(createUserDto);
+            var user = await _repository.Register(createUserDto);
             if (user is null)
             {
                 ModelState.AddModelError(string.Empty, "Error al registrar el usuario");
@@ -109,13 +112,18 @@ namespace ApiEcommerce.Controllers
         }
 
         private async Task<LoginResponseDto> BuildToken(
-            User user)
+            ApplicationUser user)
         {
             var claims = new List<Claim>
             {
-                new Claim("username", user.Username),
-                new Claim(ClaimTypes.Role, user.Role)
+                new Claim("email", user.Email!),
             };
+
+            var roles = await _userManager.GetRolesAsync(user);
+            foreach (var rolName in roles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, rolName));
+            }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);

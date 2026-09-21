@@ -5,10 +5,10 @@ namespace ApiEcommerce.Repository.IRepository
 {
     public interface IUserRepository
     {
-        IEnumerable<User> GetUsers();
-        User? GetUserById(int id);
-        bool IsUniqueUser(string username);
-        User? Login(UserLoginDto userLoginDto);
-        User Register(CreateUserDto createUserDto);
+        IEnumerable<ApplicationUser> GetUsers();
+        ApplicationUser? GetUserById(string id);
+        bool IsUniqueUser(string userName);
+        Task<ApplicationUser?> Login(ApplicationUserLoginDto userLoginDto);
+        Task<ApplicationUser?> Register(CreateApplicationUserDto createUserDto);
     }
 }

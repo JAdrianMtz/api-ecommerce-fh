@@ -8,8 +8,8 @@ namespace ApiEcommerce.Mapping
     {
         public UserProfile()
         {
-            CreateMap<User, UserDto>();
-            CreateMap<CreateUserDto, User>();
+            CreateMap<User, ApplicationUserDto>();
+            CreateMap<CreateApplicationUserDto, User>();
         }
     }
 }

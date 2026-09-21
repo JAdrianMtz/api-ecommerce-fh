@@ -3,59 +3,60 @@ using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using BCrypt.Net;
+using Microsoft.AspNetCore.Identity;
 
 namespace ApiEcommerce.Repository
 {
     public class UserRepository : IUserRepository
     {
         private readonly ApplicationDbContext _context;
-        private readonly IConfiguration _configuration;
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public UserRepository(ApplicationDbContext context, IConfiguration configuration)
+        public UserRepository(ApplicationDbContext context, UserManager<ApplicationUser> userManager, SignInManager<ApplicationUser> signInManager)
         {
             _context = context;
-            _configuration = configuration;
+            _userManager = userManager;
+            _signInManager = signInManager;
         }
 
-        public IEnumerable<User> GetUsers()
+        public IEnumerable<ApplicationUser> GetUsers()
         {
-            return _context.Users.ToList();
+            return _context.ApplicationUsers.ToList();
         }
 
-        public User? GetUserById(int id)
+        public ApplicationUser? GetUserById(string id)
         {
-            return _context.Users.FirstOrDefault(u => u.Id == id);
+            return _context.ApplicationUsers.FirstOrDefault(u => u.Id == id);
         }
 
-        public bool IsUniqueUser(string username)
+        public bool IsUniqueUser(string userName)
         {
-            return !_context.Users.Any(u => u.Username == username);
+            return !_context.ApplicationUsers.Any(u => u.UserName == userName);
         }
 
-        public User? Login(UserLoginDto userLoginDto)
+        public async Task<ApplicationUser?> Login(ApplicationUserLoginDto userLoginDto)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Username == userLoginDto.Username);
+            var user = await _userManager.FindByEmailAsync(userLoginDto.Email);
             if (user is null) { 
                 return null; 
             
             }
-            var verifyPassword = BCrypt.Net.BCrypt.Verify(userLoginDto.Password, user.Password);
-            return verifyPassword ? user : null;
+            var result = await _signInManager.CheckPasswordSignInAsync(user, userLoginDto.Password, lockoutOnFailure: true);
+            return result.Succeeded ? user : null;
         }
 
-        public User Register(CreateUserDto createUserDto)
+        public async Task<ApplicationUser?> Register(CreateApplicationUserDto createUserDto)
         {
-            var encryptedPassword = BCrypt.Net.BCrypt.HashPassword(createUserDto.Password);
-            var user = new User
+            var user = new ApplicationUser
             {
                 Name = createUserDto.Name,
-                Username = createUserDto.Username,
-                Password = encryptedPassword,
-                Role = createUserDto.Role
+                UserName = createUserDto.UserName,
+                Email = createUserDto.Email
             };
-            _context.Users.Add(user);
-            _context.SaveChanges();
-            return user;
+
+            var result = await _userManager.CreateAsync(user, createUserDto.Password);
+            return result.Succeeded ? user : null;
         }
     }
 }

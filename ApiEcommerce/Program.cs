@@ -1,10 +1,12 @@
 using ApiEcommerce.Configurations;
 using ApiEcommerce.Data;
+using ApiEcommerce.Models;
 using ApiEcommerce.Repository;
 using ApiEcommerce.Repository.IRepository;
 using ApiEcommerce.Swagger;
 using Asp.Versioning;
 using AutoMapper.Internal;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -51,6 +53,10 @@ builder.Services.AddAuthentication()
             ClockSkew = TimeSpan.Zero
         };
     });
+
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
 // CORS
 var allowedOrigins = builder.Configuration
