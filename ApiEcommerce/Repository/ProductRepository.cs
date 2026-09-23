@@ -21,6 +21,20 @@ namespace ApiEcommerce.Repository
                 .OrderBy(p => p.Name).ToList();
         }
 
+        public IEnumerable<Product> GetProductsInPages(int pageNumber, int pageSize)
+        {
+            return _context.Products
+                .OrderBy(p => p.Name)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+        }
+
+        public int GetTotalProducts()
+        {
+            return _context.Products.Count();
+        }
+
         public IEnumerable<Product> GetProductsForCategory(int categoryId)
         {
             return _context.Products

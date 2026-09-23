@@ -1,5 +1,7 @@
 ﻿using ApiEcommerce.Models;
 using ApiEcommerce.Models.Dtos;
+using ApiEcommerce.Models.Dtos.Responses;
+using ApiEcommerce.Repository;
 using ApiEcommerce.Repository.IRepository;
 using Asp.Versioning;
 using AutoMapper;
@@ -39,6 +41,29 @@ namespace ApiEcommerce.Controllers
             var products = _repository.GetProducts();
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
+        }
+
+        [HttpGet(Name = "GetProductsInPages")]
+        [AllowAnonymous]
+        [OutputCache(Tags = [cache])]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public ActionResult<PaginationResponse<ProductDto>> GetProductsInPages([FromQuery] PaginationDTO paginationDTO)
+        {
+            var totalProducts = _repository.GetTotalProducts();
+            var (quotient, remainder) = Math.DivRem(totalProducts, paginationDTO.PageSize);
+            var totalPages = remainder > 0 ? quotient + 1 : quotient;
+
+            var products = _repository.GetProductsInPages(paginationDTO.PageNumber, paginationDTO.PageSize);
+            var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
+
+            var paginationResponse = new PaginationResponse<ProductDto>
+            {
+                PageNumber = paginationDTO.PageNumber,
+                PageSize = paginationDTO.PageSize,
+                TotalPages = totalPages,
+                Items = productsDto
+            };
+            return Ok(paginationResponse);
         }
 
         [HttpGet("by-category", Name = "GetProductsForCategory")]
