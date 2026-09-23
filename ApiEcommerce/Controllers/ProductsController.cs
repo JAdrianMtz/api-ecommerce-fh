@@ -43,7 +43,7 @@ namespace ApiEcommerce.Controllers
             return Ok(productsDto);
         }
 
-        [HttpGet(Name = "GetProductsInPages")]
+        [HttpGet("paged", Name = "GetProductsInPages")]
         [AllowAnonymous]
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
