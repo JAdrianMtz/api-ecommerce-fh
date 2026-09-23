@@ -96,6 +96,11 @@ apiVersioningBuilder.AddApiExplorer(options =>
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer("name=DefaultConnection")
+        .UseSeeding((context, _) =>
+        {
+            var appContext = (ApplicationDbContext)context;
+            DataSeeder.SeedData(appContext);
+        })
 );
 
 // External libraries
