@@ -33,9 +33,9 @@ namespace ApiEcommerce.Controllers.V2
         [AllowAnonymous]
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<CategoryDto>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
-            var categories = _repository.GetCategories().OrderBy(c => c.Name);
+            var categories = (await _repository.GetCategories()).OrderBy(c => c.Name);
             var categoriesDto = _mapper.Map<IEnumerable<CategoryDto>>(categories);
             return Ok(categoriesDto);
         }
@@ -46,20 +46,20 @@ namespace ApiEcommerce.Controllers.V2
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<CategoryDto> GetCategoryById(int id)
+        public async Task<ActionResult<CategoryDto>> GetCategoryById(int id)
         {
             if (id <= 0)
             {
                 return BadRequest();
             }
 
-            var categoryExists = _repository.CategoryExists(id);
+            var categoryExists = await _repository.CategoryExists(id);
             if (!categoryExists)
             {
                 return NotFound();
             }
 
-            var category = _repository.GetCategoryById(id);
+            var category = await _repository.GetCategoryById(id);
             var categoryDto = _mapper.Map<CategoryDto>(category);
             return Ok(categoryDto);
         }
@@ -76,7 +76,7 @@ namespace ApiEcommerce.Controllers.V2
                 return BadRequest();
             }
 
-            var categoryExists = _repository.CategoryExists(createCategoryDto.Name);
+            var categoryExists = await _repository.CategoryExists(createCategoryDto.Name);
             if (categoryExists)
             {
                 ModelState.AddModelError(nameof(createCategoryDto.Name), "La categoría ya existe");
@@ -84,7 +84,7 @@ namespace ApiEcommerce.Controllers.V2
             }
 
             var category = _mapper.Map<Category>(createCategoryDto);
-            var categoryCreated = _repository.CreateCategory(category);
+            var categoryCreated = await _repository.CreateCategory(category);
             if (!categoryCreated)
             {
                 ModelState.AddModelError(string.Empty, "Error al guardar la categoría");
@@ -109,7 +109,7 @@ namespace ApiEcommerce.Controllers.V2
                 return BadRequest();
             }
 
-            var categoryExists = _repository.CategoryExists(id);
+            var categoryExists = await _repository.CategoryExists(id);
             if (!categoryExists)
             {
                 return NotFound();
@@ -117,7 +117,7 @@ namespace ApiEcommerce.Controllers.V2
 
             var category = _mapper.Map<Category>(updateCategoryDto);
             category.Id = id;
-            var categoryUpdated = _repository.UpdateCategory(category);
+            var categoryUpdated = await _repository.UpdateCategory(category);
             if (!categoryUpdated)
             {
                 ModelState.AddModelError(string.Empty, "Error al actualizar la categoría");
@@ -141,14 +141,14 @@ namespace ApiEcommerce.Controllers.V2
                 return BadRequest();
             }
 
-            var categoryExists = _repository.CategoryExists(id);
+            var categoryExists = await _repository.CategoryExists(id);
             if (!categoryExists)
             {
                 return NotFound();
             }
 
-            var category = _repository.GetCategoryById(id)!;
-            var categoryDeleted = _repository.DeleteCategory(category);
+            var category = await _repository.GetCategoryById(id);
+            var categoryDeleted = await _repository.DeleteCategory(category);
             if (!categoryDeleted)
             {
                 ModelState.AddModelError(string.Empty, "Error al eliminar la categoría");

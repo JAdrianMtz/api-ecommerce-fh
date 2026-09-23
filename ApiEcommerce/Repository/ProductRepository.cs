@@ -14,20 +14,21 @@ namespace ApiEcommerce.Repository
             _context = context;
         }
 
-        public IEnumerable<Product> GetProducts()
+        public async Task<IEnumerable<Product>> GetProducts()
         {
-            return _context.Products
+            return await _context.Products
                 .Include(p => p.Category)
-                .OrderBy(p => p.Name).ToList();
+                .OrderBy(p => p.Name)
+                .ToListAsync();
         }
 
-        public IEnumerable<Product> GetProductsInPages(int pageNumber, int pageSize)
+        public async Task<IEnumerable<Product>> GetProductsInPages(int pageNumber, int pageSize)
         {
-            return _context.Products
+            return await _context.Products
                 .OrderBy(p => p.Name)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
+                .ToListAsync();
         }
 
         public int GetTotalProducts()
@@ -35,68 +36,70 @@ namespace ApiEcommerce.Repository
             return _context.Products.Count();
         }
 
-        public IEnumerable<Product> GetProductsForCategory(int categoryId)
+        public async Task<IEnumerable<Product>> GetProductsForCategory(int categoryId)
         {
-            return _context.Products
+            return await _context.Products
                 .Include(p => p.Category)
                 .Where(p => p.CategoryId == categoryId)
-                .OrderBy(p => p.Name).ToList();
+                .OrderBy(p => p.Name)
+                .ToListAsync();
         }
 
-        public IEnumerable<Product> SearchProducts(string searchTerm)
+        public async Task<IEnumerable<Product>> SearchProducts(string searchTerm)
         {
             var formatSearchTerm = formatString(searchTerm);
-            return _context.Products
+            return await _context.Products
                 .Include(p => p.Category)
                 .Where(p => formatString(p.Name).Contains(formatSearchTerm) || formatString(p.Description).Contains(formatSearchTerm))
-                .OrderBy(p => p.Name).ToList();
+                .OrderBy(p => p.Name)
+                .ToListAsync();
         }
 
-        public Product? GetProductById(int id)
+        public async Task<Product?> GetProductById(int id)
         {
-            return _context.Products
+            return await _context.Products
                 .Include(p => p.Category)
-                .FirstOrDefault(p => p.Id == id);
+                .FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        public bool BuyProduct(int id, int quantity)
+        public async Task<bool> BuyProduct(int id, int quantity)
         {
-            var product = GetProductById(id)!;
+            var product = (await GetProductById(id))!;
             product.Stock -= quantity;
-            return UpdateProduct(product);
+            return await UpdateProduct(product);
         }
 
-        public bool ProductExists(int id)
+        public async Task<bool> ProductExists(int id)
         {
-            return _context.Products.Any(p => p.Id == id);
+            return await _context.Products.AnyAsync(p => p.Id == id);
         }
 
-        public bool ProductExists(string name)
+        public async Task<bool> ProductExists(string name)
         {
-            return _context.Products.Any(p => formatString(p.Name) == formatString(name));
+            return await _context.Products.AnyAsync(p => formatString(p.Name) == formatString(name));
         }
 
-        public bool CreateProduct(Product product) {
+        public async Task<bool> CreateProduct(Product product) {
             _context.Products.Add(product);
-            return Save();
+            return await Save();
         }
 
-        public bool UpdateProduct(Product product)
+        public async Task<bool> UpdateProduct(Product product)
         {
             product.UpdatedAt = DateTime.UtcNow;
             _context.Products.Update(product);
-            return Save();
+            return await Save();
         }
 
-        public bool DeleteProduct(Product product)
+        public async Task<bool> DeleteProduct(Product product)
         {
             _context.Products.Remove(product);
-            return Save();
+            return await Save();
         }
 
-        public bool Save()
+        public async Task<bool> Save()
         {
-            return _context.SaveChanges() >= 0;
+            return await _context.SaveChangesAsync() >= 0;
         }
 
         private string formatString(string name) => name.ToLower().Trim();

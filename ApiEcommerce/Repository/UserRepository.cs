@@ -4,6 +4,7 @@ using ApiEcommerce.Models.Dtos;
 using ApiEcommerce.Repository.IRepository;
 using BCrypt.Net;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace ApiEcommerce.Repository
 {
@@ -20,19 +21,19 @@ namespace ApiEcommerce.Repository
             _signInManager = signInManager;
         }
 
-        public IEnumerable<ApplicationUser> GetUsers()
+        public async Task<IEnumerable<ApplicationUser>> GetUsers()
         {
-            return _context.ApplicationUsers.ToList();
+            return await _context.ApplicationUsers.ToListAsync();
         }
 
-        public ApplicationUser? GetUserById(string id)
+        public async Task<ApplicationUser?> GetUserById(string id)
         {
-            return _context.ApplicationUsers.FirstOrDefault(u => u.Id == id);
+            return await _context.ApplicationUsers.FirstOrDefaultAsync(u => u.Id == id);
         }
 
-        public bool IsUniqueUser(string userName)
+        public async Task<bool> IsUniqueUser(string userName)
         {
-            return !_context.ApplicationUsers.Any(u => u.UserName == userName);
+            return !(await _context.ApplicationUsers.AnyAsync(u => u.UserName == userName));
         }
 
         public async Task<ApplicationUser?> Login(ApplicationUserLoginDto userLoginDto)

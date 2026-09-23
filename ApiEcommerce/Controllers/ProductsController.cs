@@ -36,9 +36,9 @@ namespace ApiEcommerce.Controllers
         [AllowAnonymous]
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<IEnumerable<ProductDto>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProducts()
         {
-            var products = _repository.GetProducts();
+            var products = await _repository.GetProducts();
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
         }
@@ -47,13 +47,13 @@ namespace ApiEcommerce.Controllers
         [AllowAnonymous]
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        public ActionResult<PaginationResponse<ProductDto>> GetProductsInPages([FromQuery] PaginationDTO paginationDTO)
+        public async Task<ActionResult<PaginationResponse<ProductDto>>> GetProductsInPages([FromQuery] PaginationDTO paginationDTO)
         {
             var totalProducts = _repository.GetTotalProducts();
             var (quotient, remainder) = Math.DivRem(totalProducts, paginationDTO.PageSize);
             var totalPages = remainder > 0 ? quotient + 1 : quotient;
 
-            var products = _repository.GetProductsInPages(paginationDTO.PageNumber, paginationDTO.PageSize);
+            var products = await _repository.GetProductsInPages(paginationDTO.PageNumber, paginationDTO.PageSize);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
 
             var paginationResponse = new PaginationResponse<ProductDto>
@@ -71,13 +71,13 @@ namespace ApiEcommerce.Controllers
         [OutputCache(Tags = [cache])]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<IEnumerable<ProductDto>> GetProductsForCategory([FromQuery] int categoryId) { 
+        public async Task<ActionResult<IEnumerable<ProductDto>>> GetProductsForCategory([FromQuery] int categoryId) { 
             if (categoryId <= 0)
             {
                 return BadRequest();
             }
 
-            var products = _repository.GetProductsForCategory(categoryId);
+            var products = await _repository.GetProductsForCategory(categoryId);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
         }
@@ -86,13 +86,13 @@ namespace ApiEcommerce.Controllers
         [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<IEnumerable<ProductDto>> SearchProducts([FromQuery] string searchTerm) { 
+        public async Task<ActionResult<IEnumerable<ProductDto>>> SearchProducts([FromQuery] string searchTerm) { 
             if (string.IsNullOrEmpty(searchTerm))
             {
                 return BadRequest();
             }
 
-            var products = _repository.SearchProducts(searchTerm);
+            var products = await _repository.SearchProducts(searchTerm);
             var productsDto = _mapper.Map<IEnumerable<ProductDto>>(products);
             return Ok(productsDto);
         }
@@ -103,20 +103,20 @@ namespace ApiEcommerce.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<ProductDto> GetProductById(int id)
+        public async Task<ActionResult<ProductDto>> GetProductById(int id)
         {
             if (id <= 0)
             {
                 return BadRequest();
             }
 
-            var productExists = _repository.ProductExists(id);
+            var productExists = await _repository.ProductExists(id);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var product = _repository.GetProductById(id);
+            var product = await _repository.GetProductById(id);
             var productDto = _mapper.Map<ProductDto>(product);
             return Ok(productDto);
         }
@@ -140,20 +140,20 @@ namespace ApiEcommerce.Controllers
                 return ValidationProblem();
             }
 
-            var productExists = _repository.ProductExists(productId);
+            var productExists = await _repository.ProductExists(productId);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var product = _repository.GetProductById(productId)!;
+            var product = await _repository.GetProductById(productId);
             if (quantity > product.Stock)
             {
                 ModelState.AddModelError(string.Empty, "No hay suficiente stock del producto");
                 return ValidationProblem();
             }
 
-            var success = _repository.BuyProduct(productId, quantity);
+            var success = await _repository.BuyProduct(productId, quantity);
             if (!success)
             {
                 ModelState.AddModelError(string.Empty, "Error al comprar el producto");
@@ -176,14 +176,14 @@ namespace ApiEcommerce.Controllers
                 return BadRequest();
             }
 
-            var productExists = _repository.ProductExists(createProductDto.Name);
+            var productExists = await _repository.ProductExists(createProductDto.Name);
             if (productExists)
             {
                 ModelState.AddModelError(string.Empty, "El producto ya existe");
                 return ValidationProblem();
             }
 
-            var categoryExists = _categoryRepository.CategoryExists(createProductDto.CategoryId);
+            var categoryExists = await _categoryRepository.CategoryExists(createProductDto.CategoryId);
             if (!categoryExists)
             {
                 ModelState.AddModelError(nameof(createProductDto.CategoryId), "La categoría no existe");
@@ -191,7 +191,7 @@ namespace ApiEcommerce.Controllers
             }
 
             var product = _mapper.Map<Product>(createProductDto);
-            var productCreated = _repository.CreateProduct(product);
+            var productCreated = await _repository.CreateProduct(product);
             if (!productCreated)
             {
                 ModelState.AddModelError(string.Empty, "Error al guardar el producto");
@@ -216,13 +216,13 @@ namespace ApiEcommerce.Controllers
                 return BadRequest();
             }
 
-            var productExists = _repository.ProductExists(id);
+            var productExists = await _repository.ProductExists(id);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var categoryExists = _categoryRepository.CategoryExists(updateProductDto.CategoryId);
+            var categoryExists = await _categoryRepository.CategoryExists(updateProductDto.CategoryId);
             if (!categoryExists)
             {
                 ModelState.AddModelError(nameof(updateProductDto.CategoryId), "La categoría no existe");
@@ -231,7 +231,7 @@ namespace ApiEcommerce.Controllers
 
             var product = _mapper.Map<Product>(updateProductDto);
             product.Id = id;
-            var updatedProduct = _repository.UpdateProduct(product);
+            var updatedProduct = await _repository.UpdateProduct(product);
             if (!updatedProduct)
             {
                 ModelState.AddModelError(string.Empty, "Error al actualizar el producto");
@@ -255,14 +255,14 @@ namespace ApiEcommerce.Controllers
                 return BadRequest();
             }
 
-            var productExists = _repository.ProductExists(id);
+            var productExists = await _repository.ProductExists(id);
             if (!productExists)
             {
                 return NotFound();
             }
 
-            var product = _repository.GetProductById(id)!;
-            var deletedProduct = _repository.DeleteProduct(product);
+            var product = await _repository.GetProductById(id);
+            var deletedProduct = await _repository.DeleteProduct(product);
             if (!deletedProduct)
             {
                 ModelState.AddModelError(string.Empty, "Error al eliminar el producto");

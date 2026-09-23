@@ -14,49 +14,49 @@ namespace ApiEcommerce.Repository
             _context = context;
         }
 
-        public IEnumerable<Category> GetCategories()
+        public async Task<IEnumerable<Category>> GetCategories()
         {
-            return _context.Categories.OrderBy(c => c.Name).ToList();
+            return await _context.Categories.OrderBy(c => c.Name).ToListAsync();
         }
 
-        public Category? GetCategoryById(int id)
+        public async Task<Category?> GetCategoryById(int id)
         {
-            return _context.Categories.FirstOrDefault(c => c.Id == id);
+            return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
         }
 
-        public bool CategoryExists(int id)
+        public async Task<bool> CategoryExists(int id)
         {
-            return _context.Categories.Any(c => c.Id == id);
+            return await _context.Categories.AnyAsync(c => c.Id == id);
         }
 
-        public bool CategoryExists(string name)
+        public async Task<bool> CategoryExists(string name)
         {
-            return _context.Categories.Any(c => c.Name.ToLower().Trim() == name.ToLower().Trim());
+            return await _context.Categories.AnyAsync(c => c.Name.ToLower().Trim() == name.ToLower().Trim());
         }
 
-        public bool CreateCategory(Category category)
+        public async Task<bool> CreateCategory(Category category)
         {
             category.CreatedAt = DateTime.UtcNow;
             _context.Categories.Add(category);
-            return Save();
+            return await Save();
         }
 
-        public bool UpdateCategory(Category category)
+        public async Task<bool> UpdateCategory(Category category)
         {
             category.CreatedAt = DateTime.UtcNow;
             _context.Categories.Update(category);
-            return Save();
+            return await Save();
         }
 
-        public bool DeleteCategory(Category category)
+        public async Task<bool> DeleteCategory(Category category)
         {
             _context.Categories.Remove(category);
-            return Save();
+            return await Save();
         }
 
-        public bool Save()
+        public async Task<bool> Save()
         {
-            return _context.SaveChanges() >= 0;
+            return await _context.SaveChangesAsync() >= 0;
         }
     }
 }

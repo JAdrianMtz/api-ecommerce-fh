@@ -4,13 +4,13 @@ namespace ApiEcommerce.Repository.IRepository
 {
     public interface ICategoryRepository
     {
-        IEnumerable<Category> GetCategories();
-        Category? GetCategoryById(int id);
-        bool CategoryExists(int id);
-        bool CategoryExists(string name);
-        bool CreateCategory(Category category);
-        bool UpdateCategory(Category category);
-        bool DeleteCategory(Category category);
-        bool Save();
+        Task<IEnumerable<Category>> GetCategories();
+        Task<Category?> GetCategoryById(int id);
+        Task<bool> CategoryExists(int id);
+        Task<bool> CategoryExists(string name);
+        Task<bool> CreateCategory(Category category);
+        Task<bool> UpdateCategory(Category category);
+        Task<bool> DeleteCategory(Category category);
+        Task<bool> Save();
     }
 }
