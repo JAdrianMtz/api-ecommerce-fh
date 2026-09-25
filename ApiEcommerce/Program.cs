@@ -6,6 +6,7 @@ using ApiEcommerce.Repository.IRepository;
 using ApiEcommerce.Swagger;
 using Asp.Versioning;
 using AutoMapper.Internal;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -149,6 +150,30 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
+// Exception Handler
+app.UseExceptionHandler(exceptionHandlerApp => exceptionHandlerApp.Run(async context =>
+{
+    var exceptionHandlerFeature = context.Features.Get<IExceptionHandlerFeature>();
+    var exception = exceptionHandlerFeature?.Error!;
+
+    var error = new Error()
+    {
+        ErrorMessage = exception.Message,
+        StackTrace = exception.StackTrace,
+        OcurredAt = DateTime.UtcNow
+    };
+
+    var dbContext = context.RequestServices.GetRequiredService<ApplicationDbContext>();
+    dbContext.Add(error);
+    await dbContext.SaveChangesAsync();
+    await Results.InternalServerError(new
+    {
+        Type = "error",
+        Message = "Ha ocurrido un error inesperado",
+        StatusCode = 500
+    }).ExecuteAsync(context);
+}));
+
 // API Documentation
 if (app.Environment.IsDevelopment())
 {

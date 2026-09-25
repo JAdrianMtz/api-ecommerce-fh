@@ -20,5 +20,6 @@ namespace ApiEcommerce.Data
         public DbSet<Product> Products { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<ApplicationUser> ApplicationUsers { get; set; }
+        public DbSet<Error> Errors { get; set; }
     }
 }
