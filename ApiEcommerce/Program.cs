@@ -6,6 +6,7 @@ using ApiEcommerce.Repository.IRepository;
 using ApiEcommerce.Swagger;
 using Asp.Versioning;
 using AutoMapper.Internal;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -32,10 +33,17 @@ var jwtSettings = builder.Configuration
     .Get<JwtSettings>()!;
 
 // Authentication
-builder.Services.AddAuthentication()
+builder.Services
+    .AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    })
     .AddJwtBearer(options =>
     {
         options.MapInboundClaims = false;
+
+        options.UseSecurityTokenValidators = false;
 
         options.TokenValidationParameters = new TokenValidationParameters
         {

@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
@@ -130,10 +130,17 @@ namespace ApiEcommerce.Controllers
 
             var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
 
-            var securityToken = new JwtSecurityToken(issuer: _jwtSettings.Issuer, audience: _jwtSettings.Audience,
-                claims: claims, expires: expiration, signingCredentials: credentials);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Issuer = _jwtSettings.Issuer,
+                Audience = _jwtSettings.Audience,
+                Subject = new ClaimsIdentity(claims),
+                Expires = expiration,
+                SigningCredentials = credentials
+            };
 
-            var token = new JwtSecurityTokenHandler().WriteToken(securityToken);
+            var tokenHandler = new JsonWebTokenHandler();
+            var token = new JsonWebTokenHandler().CreateToken(tokenDescriptor);
 
             return new LoginResponseDto
             {
