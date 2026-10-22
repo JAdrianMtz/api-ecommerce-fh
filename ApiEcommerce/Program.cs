@@ -41,7 +41,7 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
-        options.MapInboundClaims = false;
+        //options.MapInboundClaims = false;
 
         options.UseSecurityTokenValidators = false;
 
